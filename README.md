@@ -17,14 +17,27 @@ This project implements a **lightweight semantic search system** over the **20 N
 
 The system combines:
 
-* vector embeddings
-* fuzzy clustering
-* semantic caching
-* FastAPI service
+- vector embeddings  
+- fuzzy clustering  
+- semantic caching  
+- FastAPI service  
 
 to demonstrate a **real-world ML system architecture for semantic retrieval**.
 
 Instead of relying on keyword matching, the system retrieves documents based on **semantic similarity in embedding space**.
+
+---
+
+# Key Features
+
+- Semantic search using transformer embeddings
+- Vector similarity search using **FAISS**
+- **Fuzzy C-Means clustering** for overlapping topic detection
+- **Semantic caching** to avoid redundant computation
+- REST API built with **FastAPI**
+- Cluster-aware search results
+- Low latency responses for repeated queries
+- Real-world ML system architecture
 
 ---
 
@@ -48,9 +61,9 @@ Top Results Returned
 
 This architecture enables:
 
-* fast repeated query responses
-* semantic understanding of natural language queries
-* scalable vector retrieval
+- fast repeated query responses
+- semantic understanding of natural language queries
+- scalable vector retrieval
 
 ---
 
@@ -68,14 +81,45 @@ https://archive.ics.uci.edu/dataset/113/twenty+newsgroups
 
 Example topics include:
 
-* computer hardware
-* politics
-* religion
-* sports
-* science
-* firearms
+- computer hardware
+- politics
+- religion
+- sports
+- science
+- firearms
 
 The dataset contains **real-world noisy text**, making it ideal for testing semantic retrieval systems.
+
+---
+
+# Design Decisions
+
+### Embedding Model
+
+The system uses **BAAI/bge-base-en-v1.5** because it provides strong semantic retrieval performance while maintaining efficient inference speed.
+
+### Vector Database
+
+**FAISS (Facebook AI Similarity Search)** was selected because it provides efficient approximate nearest neighbour search and is widely used in production vector search systems.
+
+### Clustering Method
+
+Traditional clustering assigns each document to a single cluster.  
+However, real-world text often belongs to multiple topics simultaneously.
+
+Therefore **Fuzzy C-Means clustering** was used to produce probabilistic cluster memberships.
+
+### Semantic Cache Threshold
+
+A cosine similarity threshold of **0.85** was selected after experimentation.
+
+| Threshold | Behaviour |
+|----------|-----------|
+| 0.70 | Too many incorrect cache hits |
+| 0.85 | Balanced accuracy and reuse |
+| 0.95 | Very few cache hits |
+
+0.85 provides the best trade-off between **accuracy and computational efficiency**.
 
 ---
 
@@ -85,17 +129,20 @@ The dataset contains **real-world noisy text**, making it ideal for testing sema
 
 Raw posts contain formatting artifacts such as:
 
-* headers
-* email signatures
-* quoted text
+- email headers
+- signatures
+- quoted replies
+- inconsistent formatting
 
-Preprocessing includes:
+Preprocessing steps include:
 
-* text normalization
-* whitespace cleanup
-* document chunking
+- text normalization
+- whitespace cleanup
+- document chunking
 
-### Document Chunking
+---
+
+## Document Chunking
 
 Long documents are divided into **~120 word chunks**.
 
@@ -121,9 +168,9 @@ Documents are embedded using:
 
 Reasons for selecting this model:
 
-* strong performance on semantic retrieval tasks
-* efficient inference speed
-* good balance between embedding quality and compute cost
+- strong performance on semantic retrieval benchmarks
+- good balance between quality and speed
+- widely used for embedding-based search systems
 
 Each chunk is mapped to a **768-dimensional embedding vector**.
 
@@ -149,7 +196,7 @@ NN_k(q) = argmax similarity(q, d_i)
 
 Similarity is computed using **cosine similarity**.
 
-This allows fast search across tens of thousands of vectors.
+This enables fast search across thousands of high-dimensional vectors.
 
 ---
 
@@ -161,10 +208,10 @@ However, real-world topics overlap.
 
 Example:
 
-A document about **gun legislation** belongs to both:
+A document discussing **gun legislation** relates to both:
 
-* politics
-* firearms
+- politics
+- firearms
 
 To capture this behaviour, the system uses **Fuzzy C-Means clustering**.
 
@@ -180,7 +227,7 @@ U ∈ ℝ^(C × N)
 
 Where:
 
-C = number of clusters
+C = number of clusters  
 N = number of documents
 
 Each value:
@@ -200,26 +247,26 @@ Each column satisfies:
 Example:
 
 | Document | Cluster 3 | Cluster 7 | Cluster 12 |
-| -------- | --------- | --------- | ---------- |
-| Doc 102  | 0.61      | 0.29      | 0.10       |
+|--------|--------|--------|--------|
+| Doc 102 | 0.61 | 0.29 | 0.10 |
 
-This means the document primarily belongs to **Cluster 3**, but also shares similarity with other clusters.
+This means the document primarily belongs to **Cluster 3**, but also relates to other clusters.
 
-This soft assignment better reflects **topic overlap in natural language data**.
+This soft assignment better captures **semantic overlap in natural language text**.
 
 ---
 
 # Cluster Interpretation
 
-Manual inspection of clusters reveals meaningful groupings.
+Manual inspection of clusters reveals meaningful topic groupings.
 
-| Cluster | Topic                |
-| ------- | -------------------- |
-| 3       | Sports discussions   |
-| 6       | Religion debates     |
-| 10      | Politics and policy  |
-| 11      | Computer hardware    |
-| 13      | Firearms discussions |
+| Cluster | Topic |
+|-------|-------|
+| 3 | Sports discussions |
+| 6 | Religion debates |
+| 10 | Politics and policy |
+| 11 | Computer hardware |
+| 13 | Firearms discussions |
 
 Documents near cluster boundaries often have **similar probabilities across clusters**, indicating semantic ambiguity.
 
@@ -227,7 +274,7 @@ Documents near cluster boundaries often have **similar probabilities across clus
 
 # Semantic Cache
 
-Traditional caching only works for **exact string matches**.
+Traditional caching works only for **exact query matches**.
 
 Example:
 
@@ -238,7 +285,7 @@ Example:
 
 These queries are semantically identical but lexically different.
 
-To solve this, the system implements a **semantic cache**.
+To address this limitation, the system implements a **semantic cache**.
 
 Workflow:
 
@@ -252,25 +299,7 @@ Cosine similarity
 Reuse cached result if similarity exceeds threshold
 ```
 
----
-
-# Cache Threshold
-
-The system uses:
-
-```
-SIMILARITY_THRESHOLD = 0.85
-```
-
-Empirical observations:
-
-| Threshold | Behaviour                   |
-| --------- | --------------------------- |
-| 0.70      | excessive cache hits        |
-| 0.85      | balanced accuracy and reuse |
-| 0.95      | minimal cache reuse         |
-
-0.85 provides the best trade-off between **accuracy and computational savings**.
+This reduces redundant vector searches and improves response latency.
 
 ---
 
@@ -297,8 +326,7 @@ Example response:
  "query": "...",
  "cache_hit": false,
  "result": [...],
- "dominant_cluster": 11,
- "latency_ms": 12.3
+ "dominant_cluster": 11
 }
 ```
 
@@ -325,6 +353,19 @@ Clears the semantic cache.
 
 ---
 
+# Performance
+
+Average response latency:
+
+| Query Type | Latency |
+|-----------|--------|
+| Cache Miss | ~40–80 ms |
+| Cache Hit | ~5–10 ms |
+
+Semantic caching significantly reduces response time for repeated queries.
+
+---
+
 # Demo
 
 ### FastAPI Documentation
@@ -343,25 +384,12 @@ Clears the semantic cache.
 
 ![Cache Stats](images/cache_stats.png)
 
-# Evaluation
-
-Example test queries:
-
-| Query                     | Retrieved Topics                     |
-| ------------------------- | ------------------------------------ |
-| space shuttle launch      | NASA missions and astronaut training |
-| machine learning          | neural networks and AI research      |
-| graphics card performance | computer hardware discussions        |
-| gun policy debate         | firearms legislation discussions     |
-
-The system retrieves **semantically related documents even when keywords differ**.
-
 ---
 
 # Project Structure
 
 ```
-semantic_search_system
+semantic-search-system/
 
 embedder.py
 vector_store.py
@@ -369,20 +397,29 @@ clustering.py
 cluster_analysis.py
 semantic_cache.py
 main.py
-requirements.txt
 
-data
+requirements.txt
+README.md
+index.html
+
+data/
  embeddings.npy
  vector.index
  documents.pkl
  clusters.pkl
+
+images/
+ api_docs.png
+ query_request.png
+ query_response.png
+ cache_stats.png
 ```
 
 ---
 
 # Running the Project
 
-Create environment
+Create virtual environment
 
 ```
 python -m venv venv
@@ -414,19 +451,34 @@ http://127.0.0.1:8000/docs
 
 ---
 
+# Evaluation
+
+Example queries tested:
+
+| Query | Retrieved Topic |
+|-----|-----|
+| space shuttle launch | NASA missions and astronaut training |
+| machine learning | neural networks and AI research |
+| graphics card performance | computer hardware discussions |
+| gun policy debate | firearms legislation discussions |
+
+The system retrieves **semantically related documents even when keywords differ**.
+
+---
+
 # Conclusion
 
-This project demonstrates how modern machine learning techniques can be combined to build a **semantic search system**.
+This project demonstrates how modern machine learning techniques can be integrated to build a **semantic search system**.
 
 Key components include:
 
-* transformer embeddings
-* vector similarity search
-* fuzzy clustering
-* semantic caching
-* API-based query interface
+- transformer embeddings
+- vector similarity search
+- fuzzy clustering
+- semantic caching
+- API-based query interface
 
-The architecture reflects **real-world ML system design used in modern search and recommendation systems**.
+The architecture reflects **real-world ML system design used in modern search engines, recommendation systems, and knowledge retrieval platforms**.
 
 ---
 
@@ -438,9 +490,7 @@ AI/ML Engineer Task Submission
 
 GitHub Repository:
 
-```
 https://github.com/arpitakumar2003-spec/semantic-search-system
-```
 
 ---
 
@@ -448,8 +498,8 @@ https://github.com/arpitakumar2003-spec/semantic-search-system
 
 Potential improvements include:
 
-* distributed vector search
-* GPU acceleration
-* hybrid search (keyword + semantic)
-* Redis-based semantic caching
-* retrieval evaluation metrics
+- distributed vector search
+- GPU acceleration
+- hybrid search (keyword + semantic)
+- Redis-based semantic caching
+- retrieval evaluation metrics
