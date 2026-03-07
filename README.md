@@ -1,16 +1,36 @@
-Semantic Search System with Fuzzy Clustering & Semantic Cache
+# Semantic Search System with Fuzzy Clustering & Semantic Cache
+
 AI/ML Engineer Task Submission
-This project implements a lightweight semantic search system built on the 20 Newsgroups dataset (~20,000 documents).
-The system combines:
-•	Vector embeddings
-•	Fuzzy clustering
-•	Semantic caching
-•	FastAPI service
-to enable efficient semantic search over noisy textual data.
-The architecture is designed to demonstrate real-world ML system design, not just model usage.
-________________________________________
-System Overview
-The search pipeline works as follows:
+
+---
+
+![Python](https://img.shields.io/badge/Python-3.10-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-API-green)
+![FAISS](https://img.shields.io/badge/FAISS-Vector%20Search-orange)
+![ML](https://img.shields.io/badge/Machine%20Learning-Semantic%20Search-purple)
+
+---
+
+## Project Overview
+
+This project implements a **semantic search system** over the **20 Newsgroups dataset (~20,000 documents)**.
+
+The system integrates modern machine learning techniques including:
+
+* Vector embeddings
+* Fuzzy clustering
+* Semantic caching
+* FastAPI-based API service
+
+The goal is to demonstrate a **real-world ML system architecture for semantic information retrieval** rather than simply applying a model.
+
+---
+
+# System Architecture
+
+The search pipeline is structured as follows:
+
+```
 User Query
    ↓
 Query Embedding
@@ -22,158 +42,275 @@ Vector Search (FAISS)
 Cluster Analysis
    ↓
 Top Results Returned
-This design ensures:
-•	fast repeated queries
-•	semantic understanding of search
-•	scalable vector retrieval
-________________________________________
-Dataset
+```
+
+This architecture provides:
+
+* fast repeated query responses
+* semantic understanding of natural language queries
+* scalable vector retrieval
+
+---
+
+# Dataset
+
 Dataset used:
-20 Newsgroups dataset
-~20,000 newsgroup posts across 20 topics
+
+**20 Newsgroups Dataset**
+
+~20,000 newsgroup posts across 20 discussion categories.
+
 Source:
+
 https://archive.ics.uci.edu/dataset/113/twenty+newsgroups
+
 Example topics include:
-•	computer hardware
-•	politics
-•	religion
-•	sports
-•	science
-•	firearms
-The dataset contains highly noisy raw text, making it suitable for testing semantic retrieval systems.
-________________________________________
-Part 1 — Embedding & Vector Database
-Documents are embedded using:
-BAAI/bge-base-en-v1.5
-This model was chosen because:
-•	high semantic search performance
-•	strong performance on retrieval benchmarks
-•	efficient inference
-•	good balance between quality and speed
-Each document is chunked before embedding to improve retrieval quality.
-Example pipeline:
-Raw document
+
+* Computer hardware
+* Politics
+* Religion
+* Sports
+* Science
+* Firearms
+
+The dataset contains **highly noisy real-world text**, making it suitable for testing semantic retrieval systems.
+
+---
+
+# Methodology
+
+## 1. Corpus Preparation
+
+The raw dataset contains headers, quotes, and formatting artifacts.
+
+Preprocessing steps:
+
+* text normalization
+* whitespace cleanup
+* removal of formatting artifacts
+
+### Document Chunking
+
+Long posts are divided into chunks of approximately **120 words**.
+
+```
+Raw Document
    ↓
-Text cleaning
+Text Cleaning
    ↓
 Chunking (~120 words)
    ↓
-Embedding generation
-Embeddings are stored in a FAISS vector index for fast similarity search.
-FAISS enables:
-•	approximate nearest neighbor search
-•	efficient similarity retrieval
-•	scalable vector databases
-________________________________________
-Part 2 — Fuzzy Clustering
-Traditional clustering assigns each document to one cluster only.
-However real text topics often overlap.
+Embedding Generation
+```
+
+Chunking improves retrieval quality by allowing embeddings to capture **localized semantic context**.
+
+---
+
+# 2. Embedding Model
+
+Documents are embedded using the model:
+
+**BAAI/bge-base-en-v1.5**
+
+Reasons for choosing this model:
+
+* strong performance on semantic retrieval tasks
+* efficient inference
+* good trade-off between quality and speed
+
+Each document chunk is mapped into a **768-dimensional embedding space**:
+
+```
+f : text → ℝ⁷⁶⁸
+```
+
+These vectors encode semantic relationships between documents.
+
+---
+
+# 3. Vector Database
+
+Embeddings are stored in a **FAISS vector index**.
+
+FAISS enables efficient **approximate nearest neighbour search**.
+
+Given a query embedding **q**, the system retrieves the most similar document embeddings:
+
+```
+NN_k(q) = argmax similarity(q, d_i)
+```
+
+Similarity is computed using **cosine similarity**.
+
+This approach allows scalable search across tens of thousands of vectors.
+
+---
+
+# 4. Fuzzy Clustering
+
+Traditional clustering assigns each document to **one cluster only**.
+
+However real-world topics overlap.
+
 Example:
-Gun legislation discussion
-belongs to both:
-•	politics
-•	firearms
-To handle this, the system uses Fuzzy C-Means clustering.
-Library used:
-scikit-fuzzy
-Instead of a single label, each document receives a probability distribution across clusters.
+
+A document discussing **gun legislation** belongs to both:
+
+* politics
+* firearms
+
+To model this, the system uses **Fuzzy C-Means clustering**.
+
+### Membership Matrix
+
+The algorithm produces a membership matrix:
+
+```
+U ∈ ℝ^(C × N)
+```
+
+Where:
+
+* **C** = number of clusters
+* **N** = number of documents
+* **Uᵢⱼ** = membership probability of document j in cluster i
+
+Each column satisfies:
+
+```
+Σ Uᵢⱼ = 1
+```
+
+Example distribution:
+
+| Document | Cluster 3 | Cluster 7 | Cluster 12 |
+| -------- | --------- | --------- | ---------- |
+| Doc 102  | 0.61      | 0.29      | 0.10       |
+
+This means the document primarily belongs to **Cluster 3**, but also shares semantic similarity with other clusters.
+
+This soft assignment better represents **topic overlap in natural language corpora**.
+
+---
+
+# Cluster Interpretation
+
+Manual inspection of clusters reveals meaningful semantic groupings.
+
+| Cluster | Topic                  |
+| ------- | ---------------------- |
+| 3       | Sports discussions     |
+| 6       | Religion debates       |
+| 10      | Politics and policy    |
+| 11      | Computer hardware      |
+| 13      | Firearms discussions   |
+| 15      | Technology sales posts |
+
+Documents near cluster boundaries often exhibit **semantic ambiguity**, which is expected in real-world datasets.
+
+---
+
+# 5. Semantic Cache
+
+Traditional caching only works for **exact query matches**.
+
 Example:
-Document A
-Cluster 3 → 0.62
-Cluster 6 → 0.31
-Cluster 9 → 0.07
-This better reflects the true semantic structure of the corpus.
-________________________________________
-Cluster Interpretation
-Cluster inspection shows meaningful semantic groupings.
-Examples observed:
-Cluster	Topic
-3	sports discussions
-6	religion debates
-10	politics & policy
-11	computer hardware
-13	firearms discussion
-15	technology sales posts
-Boundary documents often belong to multiple clusters with similar probabilities, indicating semantic ambiguity.
-These cases are important because they show model uncertainty, which is expected in real-world text data.
-________________________________________
-Part 3 — Semantic Cache
-Traditional caching only works if the query is identical.
-Example:
+
+```
 "What is machine learning?"
 "What is ML?"
-These are different strings but semantically identical queries.
-This system implements a semantic cache.
+```
+
+These queries are semantically identical but lexically different.
+
+To address this, the system implements a **semantic cache**.
+
 Process:
+
+```
 Query embedding
 ↓
 Compare with cached query embeddings
 ↓
-Cosine similarity check
+Cosine similarity
 ↓
-Reuse cached result if similar enough
-________________________________________
-Cache Similarity Threshold
-The cache uses a tunable parameter:
+Reuse cached result if similarity > threshold
+```
+
+---
+
+## Cache Threshold Selection
+
+The cache uses:
+
+```
 SIMILARITY_THRESHOLD = 0.85
-Threshold experiments show:
-Threshold	Behaviour
-0.70	many incorrect cache hits
-0.85	balanced reuse vs accuracy
-0.95	almost no cache reuse
-0.85 provides a good balance between accuracy and efficiency.
-________________________________________
-Part 4 — FastAPI Service
-The system exposes a REST API using FastAPI.
-API endpoints:
-________________________________________
-POST /query
-Accepts a natural language query.
+```
+
+Experimental observations:
+
+| Threshold | Behaviour                     |
+| --------- | ----------------------------- |
+| 0.70      | too many incorrect cache hits |
+| 0.85      | balanced accuracy and reuse   |
+| 0.95      | almost no cache reuse         |
+
+0.85 provides the best trade-off between **accuracy and efficiency**.
+
+---
+
+# API Service
+
+The system exposes its functionality via **FastAPI**.
+
+### POST /query
+
 Example request:
+
+```
 {
  "query": "space shuttle launch"
 }
+```
+
 Example response:
+
+```
 {
- "query": "space shuttle launch",
+ "query": "...",
  "cache_hit": false,
- "matched_query": null,
- "similarity_score": null,
  "result": [...],
  "dominant_cluster": 11
 }
-Returned information:
-•	whether the query hit the cache
-•	similar cached query if available
-•	similarity score
-•	top search results
-•	dominant cluster
-________________________________________
-GET /cache/stats
-Returns cache statistics:
+```
+
+---
+
+### GET /cache/stats
+
+Returns:
+
+```
 {
  "total_entries": 5,
  "hit_count": 3,
  "miss_count": 2,
  "hit_rate": 0.6
 }
-________________________________________
-DELETE /cache
+```
+
+---
+
+### DELETE /cache
+
 Clears the semantic cache.
-{
- "message": "Cache cleared successfully"
-}
-________________________________________
-Technologies Used
-•	Python
-•	FastAPI
-•	FAISS
-•	SentenceTransformers
-•	scikit-fuzzy
-•	NumPy
-•	HuggingFace Datasets
-________________________________________
-Project Structure
+
+---
+
+# Project Structure
+
+```
 semantic_search_system/
 
 embedder.py
@@ -189,59 +326,99 @@ data/
  vector.index
  documents.pkl
  clusters.pkl
-________________________________________
-Running the Project
-Create virtual environment:
-python -m venv venv
-Activate environment:
-venv\Scripts\activate
-Install dependencies:
-pip install -r requirements.txt
-Run API:
-uvicorn main:app --reload
-Open API docs:
-http://127.0.0.1:8000/docs
-________________________________________
-Example Query
-space shuttle launch
-Example result:
-•	NASA space shuttle discussions
-•	astronaut training descriptions
-•	space mission posts
-The system successfully retrieves semantically relevant content even when keywords differ.
-________________________________________
-Design Decisions
-Key design decisions made:
-1.	Use BGE embeddings for strong semantic retrieval
-2.	Use FAISS for scalable vector search
-3.	Use fuzzy clustering to capture overlapping topics
-4.	Build semantic cache without external caching systems
-5.	Provide real-time API with FastAPI
-These decisions reflect typical production ML system architecture.
-________________________________________
-Future Improvements
-Potential improvements include:
-•	distributed vector search
-•	async inference
-•	GPU acceleration
-•	Redis-based semantic cache
-•	hybrid search (keyword + semantic)
-________________________________________
-Conclusion
-This project demonstrates how to build a production-style semantic search system combining:
-•	embeddings
-•	vector databases
-•	fuzzy clustering
-•	semantic caching
-•	API deployment
-The system shows how modern ML techniques can be integrated into a scalable search architecture.
-________________________________________
-Author
-Arpita Kumar
-AI/ML Engineer Task Submission
-________________________________________
-Submission
-GitHub Repository:
-https://github.com/arpitakumar2003-spec/semantic-search-system
-Project API runs using FastAPI and can be tested through the interactive documentation.
+```
 
+---
+
+# Running the Project
+
+Create virtual environment
+
+```
+python -m venv venv
+```
+
+Activate
+
+```
+venv\Scripts\activate
+```
+
+Install dependencies
+
+```
+pip install -r requirements.txt
+```
+
+Run API
+
+```
+uvicorn main:app --reload
+```
+
+Open API documentation
+
+```
+http://127.0.0.1:8000/docs
+```
+
+---
+
+# Example Query
+
+Example search query:
+
+```
+space shuttle launch
+```
+
+The system retrieves posts discussing:
+
+* NASA shuttle launches
+* astronaut training
+* space mission discussions
+
+This demonstrates **semantic retrieval beyond keyword matching**.
+
+---
+
+# Conclusion
+
+This project demonstrates how modern machine learning techniques can be integrated to build a **semantic search engine**.
+
+Key contributions include:
+
+* semantic vector search using embeddings
+* fuzzy clustering to capture topic overlap
+* semantic caching to reduce redundant computation
+* a scalable API layer for real-time query processing
+
+The system reflects **real-world ML system design used in modern search and recommendation systems**.
+
+---
+
+# Author
+
+**Arpita Kumar**
+
+AI/ML Engineer Task Submission
+
+GitHub Repository:
+
+```
+https://github.com/arpitakumar2003-spec/semantic-search-system
+```
+
+---
+
+# Future Improvements
+
+Possible extensions include:
+
+* distributed vector search
+* GPU acceleration
+* hybrid search (keyword + semantic)
+* Redis-based semantic cache
+* evaluation metrics for retrieval quality
+
+---
