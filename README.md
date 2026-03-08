@@ -450,6 +450,23 @@ http://127.0.0.1:8000/docs
 ```
 
 ---
+# Running with Docker
+
+This project can also be executed using Docker.
+
+## Build Docker Image
+
+docker build -t semantic-search-system .
+
+## Run Docker Container
+
+docker run -p 8000:8000 semantic-search-system
+
+## Access API
+
+Open the FastAPI documentation:
+
+http://localhost:8000/docs
 
 # Evaluation
 
@@ -502,4 +519,4 @@ Potential improvements include:
 - GPU acceleration
 - hybrid search (keyword + semantic)
 - Redis-based semantic caching
-- retrieval evaluation metrics
+- retrieval evaluation metricstgfvc
